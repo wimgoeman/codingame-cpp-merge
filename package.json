@@ -1,0 +1,23 @@
+{
+  "name": "codingame-cpp-merge",
+  "version": "0.0.1",
+  "description": "Automatic merger for C/C++ in the CodinGame IDE",
+  "main": "merger.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "CodinGame",
+    "C",
+    "C++",
+    "merge"
+  ],
+  "author": "Wim Goeman",
+  "license": "ISC",
+  "dependencies": {
+    "node-getopt": "^0.2.3"
+  },
+  "bin": {
+    "codingame-merge": "merger.js"
+  }
+}

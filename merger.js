@@ -6,13 +6,15 @@ const readline = require('readline');
 const opt = require('node-getopt').create([
     ['h', 'help', 'Display this help'],
     ['o', 'output=FILE', 'File to write merged output to.'],
-    ['w', 'working-dir=DIR', 'Directory holding the cpp files.']
+    ['w', 'working-dir=DIR', 'Directory holding the cpp files.'],
+    ['e', 'exclude-dir=DIR', 'Directory in the working dir to exclude from the merge.']
   ])
   .bindHelp()
   .parseSystem();
 
 var workDir = opt.options['working-dir'] ? opt.options['working-dir'] : '.';
 var outputFile = opt.options['output'] ? opt.options['output'] : 'merged';
+var excludeDir = opt.options['exclude-dir'] ? opt.options['exclude-dir'] : 'generated';
 var processOnce = []; //Array holds files which had '#pragma once'
 
 //Wipe file to start
@@ -28,7 +30,7 @@ function processDir(dir)
     let node = nodes[i];
     let fullPath = path.join(dir, node);
     let stat = fs.statSync(fullPath);
-    if (stat.isDirectory() && path.basename(fullPath) != "generated") {
+    if (stat.isDirectory() && path.basename(fullPath) != excludeDir) {
       processDir(fullPath);
     } else if (stat.isFile()) {
       processFile(fullPath, false);

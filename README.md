@@ -20,8 +20,13 @@ This tool will scan the working dir for cpp files recursively and append them
 all to a single file. While doing this, includes are processed similar to what
 the preprocessor would do.
 
+See built-in help for possible options: 
+```
+codingame-merge -h
+```
+
 * Create a directory tree with cpp and hpp files
-* Do not use other extensions than hpp and cpp (more extension support later)
+* Do not use other extensions than hpp and cpp (more extension support may be added later)
 * Use #include <> for libraries
 * Use #include "" for local files
 * Set up include guards in your hpp files, or use '#pragma once'

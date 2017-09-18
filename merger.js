@@ -44,7 +44,7 @@ function processFile(file, include) {
   } else if (path.extname(file) == ".cpp") {
     console.log('Processing ' + file);
     fs.appendFileSync(outputFile, "/*-- File: " + file + " start --*/\n");
-  } else if (path.extname(file) == ".hpp") {
+  } else if (path.extname(file) == ".hpp" || path.extname(file) == ".h") {
     console.log("Including: ", file);
     fs.appendFileSync(outputFile, "/*-- #include \"" + file + "\" start --*/\n");
   } else {

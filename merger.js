@@ -7,7 +7,8 @@ const opt = require('node-getopt').create([
     ['h', 'help', 'Display this help'],
     ['o', 'output=FILE', 'File to write merged output to.'],
     ['w', 'working-dir=DIR', 'Directory holding the cpp files.'],
-    ['e', 'exclude-dir=DIR', 'Directory in the working dir to exclude from the merge.']
+    ['e', 'exclude-dir=DIR', 'Directory in the working dir to exclude from the merge.'],
+    ['m', 'main-file=FILE', 'File to start with']
   ])
   .bindHelp()
   .parseSystem();
@@ -15,12 +16,21 @@ const opt = require('node-getopt').create([
 var workDir = opt.options['working-dir'] ? opt.options['working-dir'] : '.';
 var outputFile = opt.options['output'] ? opt.options['output'] : 'merged';
 var excludeDir = opt.options['exclude-dir'] ? opt.options['exclude-dir'] : 'generated';
+var mainFile = opt.options['main-file'] ? path.join(workDir, opt.options['main-file']): null;
+var mainIsProcessed = false;
 var processOnce = []; //Array holds files which had '#pragma once'
 
 //Wipe file to start
 fs.writeFileSync(outputFile, "");
 
+
+if (mainFile) {
+  processFile(mainFile, false);
+  mainIsProcessed = true;
+}
+
 processDir(workDir);
+
 
 function processDir(dir)
 {
@@ -39,7 +49,9 @@ function processDir(dir)
 }
 
 function processFile(file, include) {
-  if (path.extname(file) == ".hpp" && !include) {
+  if (file === mainFile && mainIsProcessed) {
+    return; //Main can be processed on its own at the start
+  } else if (path.extname(file) == ".hpp" && !include) {
     return;
   } else if (path.extname(file) == ".cpp") {
     console.log('Processing ' + file);

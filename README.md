@@ -6,7 +6,12 @@
 * Node.js
 * npm (part of node)
 
-### Installation
+### Installation from npm
+```
+npm i -g codingame-cpp-merge
+```
+
+### Installation from source
 * Clone this repo
 * issue npm link
 ```

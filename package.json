@@ -1,6 +1,6 @@
 {
   "name": "codingame-cpp-merge",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Automatic merger for C/C++ in the CodinGame IDE",
   "main": "merger.js",
   "scripts": {

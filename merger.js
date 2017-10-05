@@ -20,8 +20,10 @@ var mainFile = opt.options['main-file'] ? path.join(workDir, opt.options['main-f
 var mainIsProcessed = false;
 var processOnce = []; //Array holds files which had '#pragma once'
 
-//Wipe file to start
-fs.writeFileSync(outputFile, "");
+// Remove file before starting
+if (fs.existsSync(outputFile)) {
+    fs.unlinkSync(outputFile);
+}
 
 
 if (mainFile) {

@@ -49,14 +49,25 @@ function processDir(dir)
 }
 
 function processFile(file, include) {
-  if (file === mainFile && mainIsProcessed) {
+  let processedOnce = false;
+  for (let i = 0; i < processOnce.length; i++) {
+    if (processOnce[i] == file) {
+      // console.log("Found in processedOnce: ", file);
+      processedOnce = true;
+      break;
+    }
+  }
+ 
+ if (file == outputFile) return;
+
+ if (file === mainFile && mainIsProcessed) {
     return; //Main can be processed on its own at the start
   } else if (path.extname(file) == ".hpp" && !include) {
     return;
   } else if (path.extname(file) == ".cpp") {
     console.log('Processing ' + file);
     fs.appendFileSync(outputFile, "/*-- File: " + file + " start --*/\n");
-  } else if (path.extname(file) == ".hpp" || path.extname(file) == ".h") {
+  } else if ((path.extname(file) == ".hpp" || path.extname(file) == ".h") && (!processedOnce)) {
     console.log("Including: ", file);
     fs.appendFileSync(outputFile, "/*-- #include \"" + file + "\" start --*/\n");
   } else {
@@ -64,13 +75,6 @@ function processFile(file, include) {
     return;
   }
 
-  let processedOnce = false;
-  for (let i = 0; i < processOnce.length; i++) {
-    if (processOnce[i] == file) {
-      processedOnce = true;
-      break;
-    }
-  }
 
   if (!processedOnce) {
     let fileContent = fs.readFileSync(file, {encoding: "utf8"});
@@ -82,6 +86,7 @@ function processFile(file, include) {
         includedFile = path.join(path.dirname(file), includedFile);
         processFile(includedFile, true);
       } else if (line.indexOf("#pragma once") >= 0) {
+      	// console.log("Pragma once found: ", file);
         processOnce.push(file);
       } else {
         fs.appendFileSync(outputFile, line + "\n");

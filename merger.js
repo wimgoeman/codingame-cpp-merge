@@ -49,7 +49,15 @@ function processDir(dir)
 }
 
 function processFile(file, include) {
-  if (file === mainFile && mainIsProcessed) {
+  let processedOnce = false;
+  for (let i = 0; i < processOnce.length; i++) {
+    if (processOnce[i] == file) {
+      processedOnce = true;
+      break;
+    }
+  }
+ 
+ if (file === mainFile && mainIsProcessed || file == outputFile) {
     return; //Main can be processed on its own at the start
   } else if (path.extname(file) == ".hpp" && !include) {
     return;
@@ -64,13 +72,6 @@ function processFile(file, include) {
     return;
   }
 
-  let processedOnce = false;
-  for (let i = 0; i < processOnce.length; i++) {
-    if (processOnce[i] == file) {
-      processedOnce = true;
-      break;
-    }
-  }
 
   if (!processedOnce) {
     let fileContent = fs.readFileSync(file, {encoding: "utf8"});

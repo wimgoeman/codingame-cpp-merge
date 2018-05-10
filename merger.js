@@ -82,7 +82,7 @@ function processFile(file, include) {
     let fileContent = fs.readFileSync(file, {encoding: "utf8"});
     let lines = fileContent.split("\n");
     // ignore other source files containing main definition
-    if (file != mainFile && lines.filter(line => line.indexOf("int main(") >= 0).length > 0) {
+    if (mainFile && file != mainFile && lines.filter(line => line.indexOf("int main(") >= 0).length > 0) {
       console.log("Ignore other main source files: " + file);
       fs.appendFileSync(outputFile, "/*-- File: " + file + " ignored --*/\n");
       return;

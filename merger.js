@@ -8,7 +8,8 @@ const opt = require('node-getopt').create([
     ['o', 'output=FILE', 'File to write merged output to.'],
     ['w', 'working-dir=DIR', 'Directory holding the cpp files.'],
     ['e', 'exclude-dir=DIR', 'Directory in the working dir to exclude from the merge.'],
-    ['m', 'main-file=FILE', 'File to start with']
+    ['m', 'main-file=FILE', 'File to start with'],
+    ['',  'ignore-cpp', 'Ignore cpp files other than main-file'],
   ])
   .bindHelp()
   .parseSystem();
@@ -17,6 +18,7 @@ var workDir = opt.options['working-dir'] ? opt.options['working-dir'] : '.';
 var outputFile = opt.options['output'] ? opt.options['output'] : 'merged';
 var excludeDir = opt.options['exclude-dir'] ? opt.options['exclude-dir'] : 'generated';
 var mainFile = opt.options['main-file'] ? path.join(workDir, opt.options['main-file']): null;
+var ignoreCpp = opt.options['ignore-cpp'] ? true : false;
 var mainIsProcessed = false;
 var processOnce = []; //Array holds files which had '#pragma once'
 
@@ -29,7 +31,10 @@ if (mainFile) {
   mainIsProcessed = true;
 }
 
-processDir(workDir);
+if (!ignoreCpp) {
+  if (!mainFile) console.error('Must use -m with --ignore-cpp')
+  processDir(workDir);
+}
 
 
 function processDir(dir)
@@ -57,14 +62,14 @@ function processFile(file, include) {
     }
   }
  
- if (file === mainFile && mainIsProcessed || file == outputFile) {
+  if (file === mainFile && mainIsProcessed || file == outputFile) {
     return; //Main can be processed on its own at the start
-  } else if (path.extname(file) == ".hpp" && !include) {
+  } else if (['.hpp', '.h', ".hh", ".H", ".hxx", ".h++"].includes(path.extname(file)) && !include) {
     return;
-  } else if (path.extname(file) == ".cpp") {
+  } else if (['.cpp', '.cc', ".C", ".cxx", ".c++"].includes(path.extname(file))) {
     console.log('Processing ' + file);
     fs.appendFileSync(outputFile, "/*-- File: " + file + " start --*/\n");
-  } else if (path.extname(file) == ".hpp" || path.extname(file) == ".h") {
+  } else if (['.hpp', '.h', ".hh", ".H", ".hxx", ".h++"].includes(path.extname(file))) {
     console.log("Including: ", file);
     fs.appendFileSync(outputFile, "/*-- #include \"" + file + "\" start --*/\n");
   } else {
@@ -76,6 +81,12 @@ function processFile(file, include) {
   if (!processedOnce) {
     let fileContent = fs.readFileSync(file, {encoding: "utf8"});
     let lines = fileContent.split("\n");
+    // ignore other source files containing main definition
+    if (mainFile && file != mainFile && lines.filter(line => line.indexOf("int main(") >= 0).length > 0) {
+      console.log("Ignore other main source files: " + file);
+      fs.appendFileSync(outputFile, "/*-- File: " + file + " ignored --*/\n");
+      return;
+    }
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i];
       if (line.indexOf("#include \"") >= 0) {
@@ -90,9 +101,10 @@ function processFile(file, include) {
     }
   }
 
-  if (path.extname(file) == ".cpp") {
+  var extname = path.extname(file);
+  if (['.cpp', '.cc', ".C", ".cxx", ".c++"].includes(extname)) {
     fs.appendFileSync(outputFile, "/*-- File: " + file + " end --*/\n");
-  } else if (path.extname(file) == ".hpp") {
+  } else if (['.hpp', '.h', ".hh", ".H", ".hxx", ".h++"].includes(extname)) {
     fs.appendFileSync(outputFile, "/*-- #include \"" + file + "\" end --*/\n");
   }
 }

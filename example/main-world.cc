@@ -1,9 +1,9 @@
 #include <iostream>
-#include "hello.h"
+#include "world.h"
 
 using namespace std;
 
 int main() {
-  cout << hello() << hello() << endl;
+  cout << world() << endl;
   return 0;
 }

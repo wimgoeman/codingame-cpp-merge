@@ -8,7 +8,8 @@ const opt = require('node-getopt').create([
     ['o', 'output=FILE', 'File to write merged output to.'],
     ['w', 'working-dir=DIR', 'Directory holding the cpp files.'],
     ['e', 'exclude-dir=DIR', 'Directory in the working dir to exclude from the merge.'],
-    ['m', 'main-file=FILE', 'File to start with']
+    ['m', 'main-file=FILE', 'File to start with'],
+    ['',  'ignore-cpp', 'Ignore cpp files other than main-file'],
   ])
   .bindHelp()
   .parseSystem();
@@ -17,6 +18,7 @@ var workDir = opt.options['working-dir'] ? opt.options['working-dir'] : '.';
 var outputFile = opt.options['output'] ? opt.options['output'] : 'merged';
 var excludeDir = opt.options['exclude-dir'] ? opt.options['exclude-dir'] : 'generated';
 var mainFile = opt.options['main-file'] ? path.join(workDir, opt.options['main-file']): null;
+var ignoreCpp = opt.options['ignore-cpp'] ? true : false;
 var mainIsProcessed = false;
 var processOnce = []; //Array holds files which had '#pragma once'
 
@@ -29,7 +31,10 @@ if (mainFile) {
   mainIsProcessed = true;
 }
 
-processDir(workDir);
+if (!ignoreCpp) {
+  if (!mainFile) console.error('Must use -m with --ignore-cpp')
+  processDir(workDir);
+}
 
 
 function processDir(dir)

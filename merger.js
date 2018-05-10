@@ -27,9 +27,9 @@ fs.writeFileSync(outputFile, "");
 if (mainFile) {
   processFile(mainFile, false);
   mainIsProcessed = true;
+} else {
+  processDir(workDir);
 }
-
-processDir(workDir);
 
 
 function processDir(dir)
@@ -57,11 +57,11 @@ function processFile(file, include) {
     }
   }
  
- if (file === mainFile && mainIsProcessed || file == outputFile) {
+  if (file === mainFile && mainIsProcessed || file == outputFile) {
     return; //Main can be processed on its own at the start
-  } else if (path.extname(file) == ".hpp" && !include) {
+  } else if (['.hpp', '.h', ".hh", ".H", ".hxx", ".h++"].includes(path.extname(file)) && !include) {
     return;
-  } else if (path.extname(file) == ".cpp") {
+  } else if (['.cpp', '.cc', ".C", ".cxx", ".c++"].includes(path.extname(file))) {
     console.log('Processing ' + file);
     fs.appendFileSync(outputFile, "/*-- File: " + file + " start --*/\n");
   } else if (path.extname(file) == ".hpp" || path.extname(file) == ".h") {
@@ -90,9 +90,10 @@ function processFile(file, include) {
     }
   }
 
-  if (path.extname(file) == ".cpp") {
+  var extname = path.extname(file);
+  if (['.cpp', '.cc', ".C", ".cxx", ".c++"].includes(extname)) {
     fs.appendFileSync(outputFile, "/*-- File: " + file + " end --*/\n");
-  } else if (path.extname(file) == ".hpp") {
+  } else if (['.hpp', '.h', ".hh", ".H", ".hxx", ".h++"].includes(extname)) {
     fs.appendFileSync(outputFile, "/*-- #include \"" + file + "\" end --*/\n");
   }
 }

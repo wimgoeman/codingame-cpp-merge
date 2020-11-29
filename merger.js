@@ -8,7 +8,8 @@ const opt = require('node-getopt').create([
     ['o', 'output=FILE', 'File to write merged output to.'],
     ['w', 'working-dir=DIR', 'Directory holding the cpp files.'],
     ['e', 'exclude-dir=DIR', 'Directory in the working dir to exclude from the merge.'],
-    ['m', 'main-file=FILE', 'File to start with']
+    ['m', 'main-file=FILE', 'File to start with'],
+    ['c', 'comment', 'Adds comments that trace how the code was merged.']
   ])
   .bindHelp()
   .parseSystem();
@@ -17,9 +18,11 @@ var workDir = opt.options['working-dir'] ? opt.options['working-dir'] : '.';
 var outputFile = opt.options['output'] ? opt.options['output'] : 'merged';
 var excludeDir = opt.options['exclude-dir'] ? opt.options['exclude-dir'].split(/[;,]/) : ['generated'];
 var mainFile = opt.options['main-file'] ? path.join(workDir, opt.options['main-file']): null;
+var trace = !!opt.options['comment'];
 var mainIsProcessed = false;
 var processOnce = []; //Array holds files which had '#pragma once'
 var libraryIncludes = new Set(); // Array holds the names of libraries that have already been included.
+var sections = [];
 
 //Wipe file to start
 fs.writeFileSync(outputFile, "");
@@ -31,6 +34,9 @@ if (mainFile) {
 }
 
 processDir(workDir);
+
+const contents = sections.join('\n\n');
+fs.writeFileSync(outputFile, contents + '\n');
 
 
 function processDir(dir)
@@ -50,56 +56,94 @@ function processDir(dir)
 }
 
 function processFile(file, include) {
-  let processedOnce = false;
-  for (let i = 0; i < processOnce.length; i++) {
-    if (processOnce[i] == file) {
-      processedOnce = true;
-      break;
+    let section = '';
+    let starterSection = false;
+
+    if (
+        !(
+            file === mainFile && mainIsProcessed ||
+            file == outputFile
+        ) &&
+        processOnce.indexOf(file) === -1 && (
+            isCode(file) ||
+            isHeader(file) && include
+        )
+    ) {
+        if (isCode(file)) {
+            console.log('Processing ' + file);
+            if (trace) {
+                addLine("/*-- File: " + file + " start --*/", true);
+            }
+        } else {
+            console.log("Including: ", file);
+            if (trace) {
+                addLine("/*-- #include \"" + file + "\" start --*/", true);
+            }
+        }
+
+        let lines = fs.readFileSync(file, { encoding: "utf8" })
+            .split("\n");
+        for (let line of lines) {
+            let includeMatches;
+            line = line.trimRight();
+            if (!line) {
+                if (!starterSection) {
+                    finishSection();
+                }
+            } else if (!!(includeMatches = line.match(/#include (["<])([^">]+)[">]/))) {
+                if (includeMatches[1] === '<') {
+                    let includedFile = includeMatches[2];
+                    if (!libraryIncludes.has(includedFile)) {
+                        libraryIncludes.add(includedFile);
+                        addLine(line);
+                    }
+                } else {
+                    let includedFile = path.join(path.dirname(file), includeMatches[2]);
+                    finishSection();
+                    processFile(includedFile, true);
+                }
+            } else if (line.indexOf("#pragma once") >= 0) {
+                processOnce.push(file);
+            } else {
+                addLine(line);
+            }
+        }
+
+        if (trace) {
+            if (isCode(file)) {
+                addLine("/*-- File: " + file + " end --*/");
+            } else {
+                addLine("/*-- #include \"" + file + "\" end --*/");
+            }
+        }
+
+        finishSection();
     }
-  }
- 
- if (file === mainFile && mainIsProcessed || file == outputFile) {
-    return; //Main can be processed on its own at the start
-  } else if (path.extname(file) == ".hpp" && !include) {
-    return;
-  } else if (path.extname(file) == ".cpp") {
-    console.log('Processing ' + file);
-    fs.appendFileSync(outputFile, "/*-- File: " + file + " start --*/\n");
-  } else if (path.extname(file) == ".hpp" || path.extname(file) == ".h") {
-    console.log("Including: ", file);
-    fs.appendFileSync(outputFile, "/*-- #include \"" + file + "\" start --*/\n");
-  } else {
-    //File can be ignored
-    return;
-  }
 
-
-  if (!processedOnce) {
-    let fileContent = fs.readFileSync(file, {encoding: "utf8"});
-    let lines = fileContent.split("\n");
-    for (let i = 0; i < lines.length; i++) {
-      let line = lines[i];
-      if (line.indexOf("#include \"") >= 0) {
-        let includedFile = line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\""));
-        includedFile = path.join(path.dirname(file), includedFile);
-        processFile(includedFile, true);
-      } else if (line.indexOf("#pragma once") >= 0) {
-        processOnce.push(file);
-      } else if (line.indexOf("#include <") >= 0) {
-          let includedFile = line.substring(line.indexOf("<") + 1, line.lastIndexOf(">"));
-          if (!libraryIncludes.has(includedFile)) {
-              libraryIncludes.add(includedFile);
-              fs.appendFileSync(outputFile, line + "\n");
-          }
-      } else {
-        fs.appendFileSync(outputFile, line + "\n");
-      }
+    function addLine(line, starter) {
+        starterSection = starter;
+        if (section) {
+            section += '\n' + line;
+        } else {
+            section = line;
+        }
     }
-  }
 
-  if (path.extname(file) == ".cpp") {
-    fs.appendFileSync(outputFile, "/*-- File: " + file + " end --*/\n");
-  } else if (path.extname(file) == ".hpp") {
-    fs.appendFileSync(outputFile, "/*-- #include \"" + file + "\" end --*/\n");
-  }
+    function finishSection() {
+        starterSection = false;
+        if (section) {
+            sections.push(section);
+            section = '';
+        }
+    }
+
+    function isCode(file) {
+        const extension = path.extname(file);
+        return extension === ".cpp" || extension === ".c";
+    }
+
+    function isHeader(file) {
+        const extension = path.extname(file);
+        return extension === ".hpp" || extension === ".h";
+    }
 }

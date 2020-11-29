@@ -19,6 +19,7 @@ var excludeDir = opt.options['exclude-dir'] ? opt.options['exclude-dir'].split(/
 var mainFile = opt.options['main-file'] ? path.join(workDir, opt.options['main-file']): null;
 var mainIsProcessed = false;
 var processOnce = []; //Array holds files which had '#pragma once'
+var libraryIncludes = new Set(); // Array holds the names of libraries that have already been included.
 
 //Wipe file to start
 fs.writeFileSync(outputFile, "");
@@ -84,6 +85,12 @@ function processFile(file, include) {
         processFile(includedFile, true);
       } else if (line.indexOf("#pragma once") >= 0) {
         processOnce.push(file);
+      } else if (line.indexOf("#include <") >= 0) {
+          let includedFile = line.substring(line.indexOf("<") + 1, line.lastIndexOf(">"));
+          if (!libraryIncludes.has(includedFile)) {
+              libraryIncludes.add(includedFile);
+              fs.appendFileSync(outputFile, line + "\n");
+          }
       } else {
         fs.appendFileSync(outputFile, line + "\n");
       }

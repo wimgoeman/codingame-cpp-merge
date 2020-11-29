@@ -15,7 +15,7 @@ const opt = require('node-getopt').create([
 
 var workDir = opt.options['working-dir'] ? opt.options['working-dir'] : '.';
 var outputFile = opt.options['output'] ? opt.options['output'] : 'merged';
-var excludeDir = opt.options['exclude-dir'] ? opt.options['exclude-dir'] : 'generated';
+var excludeDir = opt.options['exclude-dir'] ? opt.options['exclude-dir'].split(/[;,]/) : ['generated'];
 var mainFile = opt.options['main-file'] ? path.join(workDir, opt.options['main-file']): null;
 var mainIsProcessed = false;
 var processOnce = []; //Array holds files which had '#pragma once'
@@ -40,7 +40,7 @@ function processDir(dir)
     let node = nodes[i];
     let fullPath = path.join(dir, node);
     let stat = fs.statSync(fullPath);
-    if (stat.isDirectory() && path.basename(fullPath) != excludeDir) {
+    if (stat.isDirectory() && excludeDir.indexOf(path.basename(fullPath)) === -1) {
       processDir(fullPath);
     } else if (stat.isFile()) {
       processFile(fullPath, false);
